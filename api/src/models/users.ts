@@ -1,6 +1,6 @@
 import { User } from './user';
 export class Users {
-    private allUsers: Set<User> = new Set();
+    readonly allUsers: Set<User> = new Set();
     
     get connectedUsers() {
         const results = Array();
@@ -19,7 +19,13 @@ export class Users {
     }
 
     contains(user: User): boolean {
-        return this.connectedUsers.some(connectedUser => user.uuid === connectedUser.uuid);
+        this.allUsers.forEach(u => {
+            if (u.uuid === user.uuid) {
+                return true;
+            }
+        });
+
+        return false;
     }
 
     addUser(user: User): boolean {

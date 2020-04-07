@@ -1,5 +1,5 @@
-import { UserResponse } from './user-response';
+import { IUserResponse } from './user-response';
 
-export interface UsersInGameResponse {
-    users: Array<UserResponse>;
+export interface IUsersInGameResponse {
+    users: Array<IUserResponse>;
 }

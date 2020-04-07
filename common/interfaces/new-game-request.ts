@@ -1,3 +1,4 @@
-export interface NewGameRequest {
+export interface INewGameRequest {
+    name: string;
     password: string;
 }

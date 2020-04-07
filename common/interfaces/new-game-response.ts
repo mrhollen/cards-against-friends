@@ -1,4 +1,4 @@
-export interface NewGameResponse {
+export interface INewGameResponse {
     uuid: string,
     joinCode: string
 }

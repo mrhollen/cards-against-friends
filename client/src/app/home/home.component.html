@@ -1,0 +1,131 @@
+<div class="main-content">
+  <div class="row">
+    <div class="col-lg col-xl-5">
+      <form class="card" [formGroup]="joinForm" (ngSubmit)="joinGame()">
+        <div class="card-header">
+          <div class="card-title">
+            <h3>Join a Game</h3>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col">
+              <div class="input">
+                <label for="join-name">
+                  Name 
+                  <i 
+                    class="far fa-xs fa-question-circle" 
+                    data-toggle="tooltip" 
+                    title="What should other players call you? Max length of {{maxNameLength}} characters.">
+                  </i>
+                </label>
+                <input 
+                  class="form-control" 
+                  name="join-name" 
+                  type="text" 
+                  placeholder="Required" 
+                  autocomplete="off"
+                  [formControl]="joinNameControl" />
+              </div>
+
+              <div class="input">
+                <label for="join-code">
+                  Join Code 
+                  <i 
+                    class="far fa-xs fa-question-circle" 
+                    data-toggle="tooltip" 
+                    title="The 4 letter join code. The person who started the game should see this code at the top of their screen">
+                  </i>
+                </label>
+                <input 
+                  class="form-control" 
+                  name="join-code" 
+                  type="text" 
+                  placeholder="Required"
+                  autocomplete="off"
+                  [formControl]="joinCodeControl" />
+              </div>
+
+              <div class="input">
+                <label for="join-password">
+                  Password 
+                  <i 
+                    class="far fa-xs fa-question-circle" 
+                    data-toggle="tooltip" 
+                    title="Password protect your game (Optional)">
+                  </i>
+                </label>
+                <input 
+                  class="form-control" 
+                  name="join-password" 
+                  type="text" 
+                  placeholder="Optional"
+                  autocomplete="off" 
+                  [formControl]="joinPasswordControl" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-block btn-primary new-game-button" type="submit">Join</button>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg col-xl-2" style="text-align: center;">
+      <h4>or</h4>
+    </div>
+    <div class="col-lg col-xl-5">
+      <form class="card" [formGroup]="startForm" (ngSubmit)="startGame()">
+        <div class="card-header">
+          <div class="card-title">
+            <h3>Start a Game</h3>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col">
+              <div class="input">
+                <label for="new-name">
+                  Name 
+                  <i 
+                    class="far fa-xs fa-question-circle" 
+                    data-toggle="tooltip" 
+                    title="What should other players call you? Max length of {{maxNameLength}} characters.">
+                  </i>
+                </label>
+                <input 
+                  class="form-control" 
+                  name="new-name" 
+                  type="text" 
+                  placeholder="Required"
+                  autocomplete="off" 
+                  [formControl]="startNameControl" />
+              </div>
+
+              <div class="input">
+                <label for="new-password">
+                  Password 
+                  <i 
+                    class="far fa-xs fa-question-circle" 
+                    data-toggle="tooltip" 
+                    title="Password protect your game (Optional)">
+                  </i>
+                </label>
+                <input 
+                  class="form-control" 
+                  name="new-password" 
+                  type="text" 
+                  placeholder="Optional"
+                  autocomplete="off" 
+                  [formControl]="startPasswordControl" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn btn-block btn-primary new-game-button" type="submit">Start</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-export interface IUserResponse {
+export interface IUser {
     name: string;
     numberPromptCardsWon: number;
 }

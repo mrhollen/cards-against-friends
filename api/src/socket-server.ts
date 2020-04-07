@@ -1,12 +1,13 @@
 import { Game } from "./models/game";
 import { User } from "./models/user";
 import { Socket } from 'socket.io';
-import { NewGameRequest } from "../../common/interfaces/new-game-request";
-import { NewGameResponse } from '../../common/interfaces/new-game-response';
-import { JoinGameRequest } from '../../common/interfaces/join-game-request';
-import { RejoinRequest } from '../../common/interfaces/rejoin-request';
-import { UserResponse } from '../../common/interfaces/user-response';
-import { UsersInGameResponse } from '../../common/interfaces/users-in-game-response';
+import { GameMapper } from '../src/mappers/game-mapper';
+import { INewGameRequest } from "../../common/interfaces/new-game-request";
+import { IJoinGameRequest } from '../../common/interfaces/join-game-request';
+import { IRejoinRequest } from '../../common/interfaces/rejoin-request';
+import { IGame } from '../../common/interfaces/game';
+import { IUser } from "../../common/interfaces/user";
+import { IEndGameRequest } from '../../common/interfaces/end-game-request';
 
 export class SocketServer {
     private ioServer: SocketIO.Server;
@@ -21,97 +22,159 @@ export class SocketServer {
 
     setUpListeners() {
         this.ioServer.on("connection", (socket: Socket) => {
-            const user = new User("", socket, true);
+            let user = new User("", socket, true);
             
             this.users.set(user.uuid, user);
             socket.emit("connected", user.uuid);
 
-            socket.on("host", (request: NewGameRequest) => {
-                const game = this.createNewGame(request.password);
+            console.log(`User Connected: ${user.uuid}`);
 
-                const response: NewGameResponse = {
-                    uuid: game.uuid,
-                    joinCode: game.joinCode
-                };
+            socket.on("reconnect-user", (uuid: string) => {
+                const oldUuid = user.uuid;
 
-                socket.emit("created", response);
+                if (this.users.has(uuid)) {
+                    user = this.users.get(uuid) as User;
+                }
+
+                user.uuid = uuid;
+                user.isConnected = true;
+                user.socket = socket;
+
+                console.log(`${oldUuid} is now ${user.uuid}`);
+
+                this.activeGames.forEach(game => {
+                    if (game.userIsPlaying(user)) {
+                        socket.emit("joined-game", GameMapper.fromGameToResponse(game));
+                    }
+                });
             });
 
-            socket.on("join", (request: JoinGameRequest) => {
+            socket.on("new", (request: INewGameRequest) => {
                 user.name = request.name;
-                this.joinGame(request.joinCode, request.password, user);
+
+                const game = this.createNewGame(request.password, user);
+
+                socket.emit("joined-game", GameMapper.fromGameToResponse(game));
             });
 
-            socket.on("rejoin", (request: RejoinRequest) => {
-                user.uuid = request.uuid;
-                user.uuid = request.name;
+            socket.on("join", (request: IJoinGameRequest) => {
+                user.name = request.name;
 
-                this.joinGame(request.joinCode, request.password, user);
+                const game = this.joinGame(request.joinCode, request.password, user);
+
+                if (game) {
+                    socket.emit("joined-game", GameMapper.fromGameToResponse(game));
+                }
             });
 
-            socket.on("end", (uuid: string) => {
-                this.endGame(uuid);
+            socket.on("rejoin", (request: IRejoinRequest) => {
+                const game = this.rejoinGame(request.joinCode, request.password, user);
+
+                if (game) {
+                    socket.emit("joined-game", GameMapper.fromGameToResponse(game));
+                }
+            });
+
+            socket.on("end", (request: IEndGameRequest) => {
+                this.endGame(request.joinCode, request.uuid);
+            });
+
+            socket.on("exit", () => {
+                this.leaveGame(user);
             });
 
             socket.on("disconnect", () => {
-                this.leaveGame(user);
+                user.isConnected = false;
+                // this.pruneInactiveGames();
             });
         });
     }
 
-    alertUserListChange(users: Array<User>) {
-        const userResponses: Array<UserResponse> = users.map(user => {
-            return {
-                name: user.name,
-                promptCardsWon: user.promptCardsWon.length
-            };
-        });
+    sendGameState(game: Game) {
+        const fullUsers: Array<User> = game.usersInGame.connectedUsers;
 
-        const response: UsersInGameResponse = { users: userResponses};
-
-        for (const user of users) {
+        for (const user of fullUsers) {
             if (user.socket.connected) {
-                user.socket.emit("user-list-changed", response);
+                user.socket.emit("game-state", GameMapper.fromGameToResponse(game));
             }
         }
     }
 
-    createNewGame(password: string | null = null): Game {
+    createNewGame(password: string | null = null, user: User): Game {
         const game = new Game(password);
+        
+        game.joinGame(user, password);
 
         this.activeGames.set(game.joinCode, game);
 
         return game;
     }
 
-    endGame(uuid: string) {
-        const game = this.activeGames.get(uuid);
+    endGame(joinCode: string, uuid: string) {
+        const game = this.activeGames.get(joinCode);
         
-        if (game) {
+        if (game && game.uuid === uuid) {
+            console.log('Ending game ' + game.joinCode);
+
             game.usersInGame.connectedUsers.forEach(user => {
-                user.socket.emit("end");
+                user.socket.emit("end-game");
             });
 
             this.activeGames.delete(game.joinCode);
         }
     }
 
-    joinGame(joinCode: string, password: string, user: User): boolean {
+    joinGame(joinCode: string, password: string, user: User): Game | undefined {
+        const game = this.activeGames.get(joinCode);
+
+        if (game?.userIsPlaying(user)) {
+            return this.rejoinGame(joinCode, password, user);
+        }
+
+        if (game) {
+            if (game.joinGame(user, password)) {
+                this.sendGameState(game);
+            }
+        }
+        
+        return game;
+    }
+
+    rejoinGame(joinCode: string, password: string, user: User): Game | undefined {
         const game = this.activeGames.get(joinCode);
 
         if (game) {
-            this.alertUserListChange(game.joinGame(user, password));
-            return true;
-        } else {
-            return false;
+            if (game.rejoinGame(user, password)) {
+                this.sendGameState(game);
+            }
         }
+        
+        return game;
     }
 
     leaveGame(user: User) {
         this.activeGames.forEach(game => {
             if (game.userIsPlaying(user)) {
                 game.leaveGame(user);
+
+                if (game.usersInGame.count < 1) {
+                    this.endGame(game.joinCode, game.uuid);
+                } else {
+                    this.sendGameState(game);
+                }
             }
         });
+    }
+
+    pruneInactiveGames() {
+        const gamesToRemove: Array<Game> = Array();
+
+        this.activeGames.forEach((game: Game) => {
+            if (game.usersInGame.connectedUsers.length < 1) {
+                gamesToRemove.push(game);
+            }
+        });
+
+        gamesToRemove.forEach(game => this.endGame(game.joinCode, game.uuid));
     }
 }

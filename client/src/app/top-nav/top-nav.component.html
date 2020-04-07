@@ -1,0 +1,10 @@
+<nav class="navbar navbar-dark bg-primary">
+  <a class="navbar-brand" href="/" (click)="exitCurrentGame()">Cards Against Friends</a>
+  <span class="text-light">
+    <h5 *ngIf="game">Join Code: {{game.joinCode | uppercase}}</h5>
+  </span>
+  <span>
+    <h5 *ngIf="showConnected"><span class="badge badge-success">Connected</span></h5>
+    <h5 *ngIf="showDisconnected"><span class="badge badge-danger">Disconnected</span></h5>
+  </span>
+</nav>

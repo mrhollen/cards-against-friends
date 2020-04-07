@@ -1,6 +1,4 @@
-export interface RejoinRequest {
-    uuid: string;
-    name: string;
+export interface IRejoinRequest {
     joinCode: string;
     password: string;
 }
